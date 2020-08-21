@@ -1,4 +1,4 @@
-﻿#include<iostream>
+#include<iostream>
 #include<regex>
 #include<mutex>
 #include<string>
@@ -105,9 +105,6 @@ public:
 			COUT << obj.getElement1(i) << " " << obj.getElement2(i) << endl;
 		return COUT;
 	}
-	//	/*objekat kolekcija2 ce biti inicijalizovan elementima koji se u objektu kolekcija1 nalaze na lokacijama 1 - 4
-	//ukljucujuci i te lokacije. u konkretnom primjeru to ce biti parovi sa vrijednostima: 1 1 2 2 3 3 4 4*/
-	//	Kolekcija<int, int> kolekcija2 = kolekcija1(1, 4);
 	Kolekcija<T1, T2> operator()(int min, int max) {
 		Kolekcija<int, int> nova;
 		if (min < 0 || min >= _trenutno || max < 0 || max >= _trenutno || max < min) throw exception("Nedozvoljene lokacije");
@@ -224,8 +221,6 @@ public:
 	bool operator==(const Predmet& drugi) {
 		return _ocjene == drugi._ocjene && strcmp(_naziv, drugi._naziv) == 0;
 	}
-	// ispisuje: naziv predmeta, ocjene (zajedno sa datumom polaganja) i prosjecnu ocjenu na predmetu
-	// ukoliko predmet nema niti jednu ocjenu prosjecna treba biti 0
 	friend ostream& operator<<(ostream& COUT, Predmet& obj) {
 		COUT << obj._naziv << endl;
 		for (int i = 0; i < obj._ocjene.getTrenutno(); i++)
@@ -239,10 +234,10 @@ class Uspjeh {
 	//string se odnosi na napomenu o polozenom predmetu
 	Kolekcija<Predmet, string>* _polozeniPredmeti;
 public:
-	Uspjeh(eRazred razred = PRVI) {
-		_razred = razred;
-		_polozeniPredmeti = nullptr;
-	}
+	Uspjeh(eRazred razred = PRVI) { // na ovom ispitu _polozeniPredmeti nije bilo postavljeno u konstruktoru, i tvoj izbor je da ili alociras memoriju odmah
+		_razred = razred;			// ili da stavis kolekciju na nullptr, ja sam stavio nullptr kao izazov u upravljanju memorijom 
+		_polozeniPredmeti = nullptr;// Na ispitu nekad dodje pokazivac vec stavljen na nullptr i tada morate znati upravljati memorijom (tj. alocirati prije nego sto pristupate kolekciji
+	}								// da ne bi se desio runtime error (najcesca pogreska kod vecine ljudi), a u tome da ne dirate konstruktor kakav je profesor zadao
 
 	~Uspjeh() { delete _polozeniPredmeti; _polozeniPredmeti = nullptr; }
 	Uspjeh(const Uspjeh& org) {
@@ -329,25 +324,15 @@ public:
 		cout << "Pozdrav.\n FIT Team" << endl;
 		m.unlock();
 	}
-	///*
-///*nakon evidentiranja uspjeha na bilo kojem predmetu kandidatu se salje email sa porukom:
-	//FROM:info@fit.ba
-	//TO: emailKorisnika
-	//Postovani ime i prezime, evidentirali ste uspjeh za X razred. Dosadasnji uspjeh (prosjek)
-	//na nivou X razreda iznosi Y, a ukupni uspjeh u toku skolovanja iznosi Z.
-	//Pozdrav.
-	//FIT Team.
-	//ukoliko je prosjek na nivou tog razreda veci od 4.5 kandidatu se salje SMS sa porukom: "Svaka cast za uspjeh 4.X u X razredu".
-	//slanje poruka i emailova implemenitrati koristeci zasebne thread-ove.
-	//*/
 	bool AddPredmet(eRazred razred, Predmet p, string napomena) {
 		if (p.GetProsjek() < 2.5) return false;
 		for (int i = 0; i < _uspjeh.size(); i++) {
 			if (_uspjeh[i].GetERazred() == razred) {
 				if (_uspjeh[i].GetPredmeti()->getTrenutno() == 5) return false;
-				for (int j = 0; j < _uspjeh[i].GetPredmeti()->getTrenutno(); j++) {
-					if (_uspjeh[i].GetPredmeti()->getElement1(j) == p && _uspjeh[i].GetPredmeti()->getElement2(j) == napomena) return false;
-				}
+
+				for (int j = 0; j < _uspjeh[i].GetPredmeti()->getTrenutno(); j++)
+					if (_uspjeh[i].GetPredmeti()->getElement1(j) == p) return false;
+				
 				_uspjeh[i].GetPredmeti()->AddElement(p, napomena);
 				thread t1(&Kandidat::PosaljiEmail, this, razred, _uspjeh[i].prosjekRazred());
 				t1.join();
@@ -372,10 +357,6 @@ public:
 		}
 		return true;
 	}
-	//vraca kolekciju predmeta koji sadrze najmanje jednu ocjenu evidentiranu u periodu izmedju proslijedjenih datuma
-	//float se odnosi na prosjecan broj dana izmedju ostvarenih ocjena na predmetu
-	//Kolekcija<Predmet, float> jasminUspjeh = jasmin(Datum(18, 06, 2019), Datum(21, 06, 2019));
-	//cout << jasminUspjeh << crt;
 	Kolekcija<Predmet, float> operator()(Datum pocetak, Datum kraj)
 	{
 		Kolekcija<Predmet, float> temp;
@@ -396,6 +377,13 @@ public:
 		}
 		return temp;
 	}
+	Uspjeh* operator[] (eRazred razred)
+	{
+		for (auto& uspjeh : _uspjeh)
+			if (uspjeh.GetERazred() == razred) // Ako nadje taj uspjeh, vrati njegovu adresu jer je operator[] pokazivac na uspjeh
+				return &uspjeh;
+		return nullptr;
+	}
 };
 const char* GetOdgovorNaPrvoPitanje() {
 	cout << "Pitanje -> Na sta se odnosi pojam reprezentacije tipa?\n";
@@ -409,12 +397,12 @@ const char* GetOdgovorNaDrugoPitanje() {
 
 int main() {
 
-	/*cout << PORUKA;
-	cin.get();*/
-
-	//cout << GetOdgovorNaPrvoPitanje() << endl;
+	cout << PORUKA;
 	//cin.get();
-	//cout << GetOdgovorNaDrugoPitanje() << endl;
+
+	cout << GetOdgovorNaPrvoPitanje() << endl;
+	//cin.get();
+	cout << GetOdgovorNaDrugoPitanje() << endl;
 	//cin.get();
 
 	Datum temp,
@@ -491,7 +479,7 @@ int main() {
 	///*
 	//uspjeh (tokom srednjoskolskog obrazovanja) se dodaje za svaki predmet na nivou razreda.
 	//tom prilikom onemoguciti:
-	//- dodavanje istih (moraju biti identicne vrijednosti svih clanova) predmeta na nivou jednog razreda,
+	//- dodavanje istih (moraju biti identicne vrijednosti svih clanova) predmeta na nivou jednog razreda, ... pitajte na ispitu sta znaci to u zagradi, tj. sta se mora tacno poredit
 	//- dodavanje predmeta kod kojih je prosjecna ocjena manja od 2.5
 	//- dodavanje vise od 5 predmeta na nivou jednog razreda
 	//razredi (predmeti ili uspjeh) ne moraju biti dodavani sortiranim redoslijedom (npr. prvo se moze dodati uspjeh za II razred, pa onda za I razred i sl.).
@@ -525,12 +513,11 @@ int main() {
 	//float se odnosi na prosjecan broj dana izmedju ostvarenih ocjena na predmetu
 	Kolekcija<Predmet, float> jasminUspjeh = jasmin(Datum(18, 06, 2019), Datum(21, 06, 2019));
 	cout << jasminUspjeh << crt;
-	cout << jasminUspjeh.getTrenutno() << endl;
-	//Uspjeh* uspjeh_Irazred = jasmin[PRVI];//vraca uspjeh kandidata ostvaren u prvom razredu
-	//if (uspjeh_Irazred != nullptr)
-	//	cout << *uspjeh_Irazred << crt;
+	Uspjeh* uspjeh_Irazred = jasmin[PRVI];//vraca uspjeh kandidata ostvaren u prvom razredu
+	if (uspjeh_Irazred != nullptr)
+		cout << *uspjeh_Irazred << crt;
 
 	//cin.get();
 	//system("pause>0");
-	//return 0;
+	return 0;
 }
