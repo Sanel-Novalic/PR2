@@ -360,7 +360,7 @@ public:
 	Kolekcija<Predmet, float> operator()(Datum pocetak, Datum kraj)
 	{
 		Kolekcija<Predmet, float> temp;
-		for (auto uspjeh : _uspjeh)
+		for (auto& uspjeh : _uspjeh)
 		{
 			for (int i = 0; i < uspjeh.GetPredmeti()->getTrenutno(); i++)
 			{
